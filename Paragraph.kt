@@ -51,7 +51,7 @@ class Header(val contents: String) : Paragraph {
 class Text(val contents: String) : Paragraph {
   val sentences: MutableList<Sentence> = ArrayList()
   init {
-    val rawSentences = contents.replace(Regex("\\.(\\s)*$"),"").split(Regex("\\.(\\s)*"))
+    val rawSentences = contents.replace(Regex("\\.(\\s)*$"),"").split(Regex("\\.(\\s)*")) //remove the last period before splitting into separate sentences
     for(rawSentence in rawSentences){
       if(rawSentence.contains(Regex("\\*\\*.*\\*\\*")) || rawSentence.contains(Regex("\\*.*\\*")))
         sentences.add(ImportantSentence(rawSentence))
@@ -59,7 +59,6 @@ class Text(val contents: String) : Paragraph {
         sentences.add(Sentence(rawSentence))
     }
   }
-
   override fun rawString(): String{
     return contents
   }
@@ -76,6 +75,29 @@ class Text(val contents: String) : Paragraph {
       framedString += sentence.framedDisplay()
     }
     return framedString
+  }
+}
+
+class NumberedItem(val contents: String): Paragraph{
+  val index: Int
+  val item: String
+  val level: Int
+  init{
+    val indexPlusItem: List<String> = contents.split(Regex("(\\.(\\s)*)"),2)
+    this.index = trimPreSpaces(indexPlusItem[0]).toInt()
+    this.item = indexPlusItem[1]
+    this.level = contents.split(Regex("(\\d+\\.( )*)"))[0].length / 3 //3 is the tab length
+
+    println(this.index.toString() + " " + this.item + " " + this.level.toString())
+  }
+  override fun rawString(): String{
+    return contents
+  }
+  override fun displayString(): String{
+    return "none\n"
+  }
+  override fun framedDisplay(): String{
+    return "none\n"
   }
 }
 
@@ -122,7 +144,9 @@ fun strongString(str: String): String{
   return "\\textbf{" + str.substring(2..str.length-3) + "}"
 }
 
-
+fun trimPreSpaces(str: String): String{
+  return str.replace(Regex("^( )*"),"")
+}
 
 fun parse(file: File){
   val lines: List<String> = file.useLines { it.toList() }
@@ -130,8 +154,12 @@ fun parse(file: File){
   for(line in lines){
     if (Regex("#+.*") matches line)
       document.paragraphs.add(Header(line))
+    else if (line.matches(Regex("(( )*\\d+\\.( )*).*")))
+      document.paragraphs.add(NumberedItem(line))
     else if (line != "")
       document.paragraphs.add(Text(line))
+
+
   }
 
   //for(paragraph in document.paragraphs){
